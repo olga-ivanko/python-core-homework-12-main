@@ -1,16 +1,10 @@
 from my_classes import Field, Name, Phone, Record, AddressBook
 from datetime import datetime
-import pickle
 import re
 
-try: 
-    file_name = "book.bin"
-    with open(file_name, "rb") as fb: 
-        unpacked  = pickle.load(fb)
-        print(f"AddressBook with {len(unpacked)} contacts is succesfuly uploaded")
-    book = unpacked
-except FileNotFoundError:
-    book = AddressBook()
+file_name = "book.bin"
+book = AddressBook()
+book.load(file_name)
 
 
 def user_error(func):
@@ -25,18 +19,19 @@ def user_error(func):
             return "Unknown or wrong format. Check phone and/or birthday"
         except AttributeError:
             return "Contacts was not found"
+
     return inner
 
 
 def func_normalize_phone(phone):
     new_phone = (
         phone.strip()
-            .removeprefix("+38")
-            .replace("(", "")
-            .replace(")", "")
-            .replace("-", "")
-            .replace(" ", "")
-        )
+        .removeprefix("+38")
+        .replace("(", "")
+        .replace(")", "")
+        .replace("-", "")
+        .replace(" ", "")
+    )
 
     return new_phone
 
@@ -51,11 +46,13 @@ def func_add(*args):
 
     if rec_id in book.keys():
         return f"Record alredy exist"
-    elif new_phone == None: 
+    elif new_phone == None:
         return f"Check the phone: {phone}. Wrong format."
-    
+
     if len(args) == 3:
-        new_birthday = datetime(year = int(args[2][6:]), month=int(args[2][3:5]), day=int(args[2][:2]))
+        new_birthday = datetime(
+            year=int(args[2][6:]), month=int(args[2][3:5]), day=int(args[2][:2])
+        )
         contact_birtday = new_birthday.date().strftime("%d %B %Y")
         new_record.add_birthday(new_birthday)
         book[rec_id] = new_record
@@ -71,36 +68,36 @@ def func_change(*args):
     old_phone = func_normalize_phone(args[1])
     new_phone = func_normalize_phone(args[2])
 
-    if old_phone == None: 
-        return f"Check the phone: {args[1]}. Wrong format."    
-    if new_phone == None: 
+    if old_phone == None:
+        return f"Check the phone: {args[1]}. Wrong format."
+    if new_phone == None:
         return f"Check the phone: {args[2]}. Wrong format."
-    
+
     book.find(rec_id).edit_phone(old_phone, new_phone)
     return f"Record {rec_id} is updated with nes phone: {book.get(rec_id).phones[0]}"
 
-    
-@user_error    
+
+@user_error
 def func_phone(*args):
     rec_id = args[0]
     return f"Phone of {rec_id} is {book.get(rec_id).phones[0]}"
-    
+
 
 def func_hello(*args):
     return f"How can I help you?"
 
 
 def func_show_all(*args):
-    if len(book)==0:
+    if len(book) == 0:
         return f"Your contacts list is empty"
     line = ""
     for record in book.values():
-        line += f"{record}\n" 
+        line += f"{record}\n"
     return line
 
 
 def func_show(*args):
-    if len(book)==0:
+    if len(book) == 0:
         return f"Your contacts list is empty"
     stop = int(args[0])
     line = ""
@@ -112,13 +109,16 @@ def func_show(*args):
 def func_find(*args):
     line = ""
     for record in book.values():
-        found_rec = re.findall(args[0], str(record))
+        str_rec = str(record.name)
+        for ph in record.phones:
+            str_rec += str(ph)
+        found_rec = re.findall(args[0], str_rec)
         if len(found_rec) != 0:
-            line += f"{record}\n" 
-    
+            line += f"{record}\n"
+
     if len(line) == 0:
-        return f"the search for key \"{args[0]}\" gave no results. Try other key."
-    print(f"result for \"{args[0]}\" search:")
+        return f'the search for key "{args[0]}" gave no results. Try other key.'
+    print(f'result for "{args[0]}" search:')
     return line
 
 
@@ -127,47 +127,47 @@ def func_remove(*args):
     book.delete(rec_id)
     return f"Contact {rec_id} succesfully removed"
 
+
 def unknown(*args):
     return "Unknown command. Try again."
 
 
 def func_good_bye(*args):
-    with open(file_name, "wb") as fb:
-        pickle.dump(book, fb)
-        print("AddressBook is saved as book.bin")
+    book.save(file_name)
     print(f"Good bye!")
     exit()
-        
 
-FUNCTIONS = {"hello" : func_hello,
-            "add" : func_add,
-            "change" : func_change, 
-            "phone" : func_phone,
-            "show all" : func_show_all,
-            "show" : func_show,
-            "find": func_find,
-            "good bye" : func_good_bye, 
-            "close" : func_good_bye, 
-            "exit" : func_good_bye,
-            "remove": func_remove,
-            "": func_good_bye}
+
+FUNCTIONS = {
+    "hello": func_hello,
+    "add": func_add,
+    "change": func_change,
+    "phone": func_phone,
+    "show all": func_show_all,
+    "show": func_show,
+    "find": func_find,
+    "good bye": func_good_bye,
+    "close": func_good_bye,
+    "exit": func_good_bye,
+    "remove": func_remove,
+    "": func_good_bye,
+}
 
 
 def parser(text: str):
     for func in FUNCTIONS.keys():
         if text.startswith(func):
-            return func, text[len(func):].strip().split()
+            return func, text[len(func) :].strip().split()
     return unknown, []
 
 
 def main():
- 
     while True:
         user_input = input(">>>")
         func, data = parser(user_input.lower())
         current_func = FUNCTIONS.get(func)
         print(current_func(*data))
-        
-        
+
+
 if __name__ == "__main__":
     main()

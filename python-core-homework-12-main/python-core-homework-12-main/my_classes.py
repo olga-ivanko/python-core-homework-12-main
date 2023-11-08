@@ -1,6 +1,7 @@
 from collections import UserDict
 from collections.abc import Iterator
 from datetime import datetime
+import pickle
 
 
 class Field:
@@ -23,7 +24,7 @@ class Name(Field):
     def __init__(self):
         super().__init__()
         self.__value = None
-    
+
     @property
     def value(self):
         return self.__value
@@ -42,13 +43,13 @@ class Phone(Field):
     @property
     def value(self):
         return self.__value
-    
+
     @value.setter
     def value(self, new_value):
         if len(new_value) != 10 or not new_value.isdigit():
             raise ValueError
-        self.__value = new_value   
-    
+        self.__value = new_value
+
 
 class Birthday(Field):
     def __init__(self):
@@ -58,30 +59,29 @@ class Birthday(Field):
     @property
     def value(self):
         return self.__value
-    
+
     @value.setter
     def value(self, new_value: datetime):
         if type(new_value) != datetime:
             raise ValueError
-        else: 
-            self.__value = new_value.date()  
+        else:
+            self.__value = new_value.date()
 
 
 class Record:
-    def __init__(self, name:Name):
+    def __init__(self, name: Name):
         new_name = Name()
         new_name.value = name
         self.name = new_name
         self.phones = []
         self.birthday = Birthday()
-        
 
     def add_phone(self, phone):
         new_phone = Phone(phone)
         new_phone.value = phone
         self.phones.append(new_phone)
 
-    def remove_phone(self, phone:str): 
+    def remove_phone(self, phone: str):
         self.phones.remove(self.find_phone(phone))
 
     def edit_phone(self, old_phone, new_phone):
@@ -90,11 +90,11 @@ class Record:
         new_ph.value = new_phone
         self.phones.append(new_ph)
 
-    def find_phone(self, phone:str):
+    def find_phone(self, phone: str):
         for x in self.phones:
             if x.value == phone:
                 return x
-            
+
     def add_birthday(self, birthday):
         self.birthday.value = birthday
 
@@ -105,14 +105,21 @@ class Record:
             days_to_bd = next_bd - today
             return days_to_bd.days
         else:
-            next_bd = self.birthday.value.replace(year=today.year+1)
+            next_bd = self.birthday.value.replace(year=today.year + 1)
             days_to_bd = next_bd - today
             return days_to_bd.days
-            
+
     def __str__(self):
         if self.birthday.value:
-            return "Contact name: {:<15}| phones: {:<12}| birthday: {} ({} days to birthday)".format(self.name.value, "; ".join(p.value for p in self.phones), self.birthday.value, self.days_to_birthday() )
-        return "Contact name: {:<15}| phones: {:<12}|".format(self.name.value, "; ".join(p.value for p in self.phones))
+            return "Contact name: {:<15}| phones: {:<12}| birthday: {} ({} days to birthday)".format(
+                self.name.value,
+                "; ".join(p.value for p in self.phones),
+                self.birthday.value,
+                self.days_to_birthday(),
+            )
+        return "Contact name: {:<15}| phones: {:<12}|".format(
+            self.name.value, "; ".join(p.value for p in self.phones)
+        )
 
 
 class AddressBook(UserDict):
@@ -123,7 +130,7 @@ class AddressBook(UserDict):
         if name in self.keys():
             found_rec = self.get(name)
             return found_rec
-            
+
     def delete(self, name):
         if name in self.keys():
             self.pop(name)
@@ -143,7 +150,20 @@ class AddressBook(UserDict):
                 page += 1
         if indx > 0:
             yield print_page
-            
 
+    def load(self, file_name):
+        try:
+            with open(file_name, "rb") as fb:
+                self.data = pickle.load(fb)
+                print(
+                    f"AddressBook with {len(self.data)} contacts is succesfuly uploaded"
+                )
+                return self.data
+        except FileNotFoundError:
+            book = AddressBook()
 
-   
+    def save(self, file_name):
+        with open(file_name, "wb") as fb:
+            pickle.dump(self.data, fb)
+            print("AddressBook is saved as book.bin")
+        return None
